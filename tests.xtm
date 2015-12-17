@@ -1,0 +1,70 @@
+(sys:load "libs/core/test.xtm")
+(sys:load "tree.xtm")
+
+(xtmtest
+ '(bind-func test_tree_value_1
+    (lambda ()
+      (let ((t1 (Tree "hi" null null)))
+        (Tree_get_value t1))))
+ (cptr->string (test_tree_value_1)) "hi")
+
+(xtmtest
+ '(bind-func test_tree_set_value_1
+    (lambda ()
+      (let ((t1 (Tree "hi" null null)))
+        (Tree_set_value t1 "world"))))
+ (cptr->string (test_tree_set_value_1)) "world")
+
+(xtmtest
+ '(bind-func test_tree_get_parent
+    (lambda ()
+      (let ((t1 (Tree "hi" null null))
+            (t2 (Tree "world" t1 null)))
+        (Tree_get_value (Tree_get_parent t2)))))
+ (cptr->string (test_tree_get_parent)) "hi")
+
+(xtmtest
+ '(bind-func test_tree_set_parent
+    (lambda ()
+      (let ((t1 (Tree "hi" null null))
+            (t2 (Tree "world" null null)))
+        (Tree_set_parent t2 t1)
+        (Tree_get_value (Tree_get_parent t2)))))
+ (cptr->string (test_tree_set_parent)) "hi")
+
+(xtmtest
+ '(bind-func test_tree_get_children
+    (lambda ()
+      (let ((t1 (Tree "hi" null null))
+            (t2 (Tree "world" t1 null))
+            (t3 (Tree "foo" t1 null)))
+        (println (length (Tree_get_children t1)))
+        (length (Tree_get_children t1))))) 
+ (test_tree_get_children) 2)
+
+(xtmtest
+ '(bind-func test_tree_set_children
+    (lambda ()
+      ))
+ (test_tree_set_children))
+
+
+
+(xtmtest 
+ '(bind-func test_tree_root_p
+    (lambda ()
+      (let ((t1 (Tree "Pete" null null)))
+        (Tree_root_p t1))))
+ (test_tree_root_p) 1)
+
+(xtmtest 
+ '(bind-func test_tree_parent
+    (lambda ()
+      (let ((t1 (Tree "Pete" null null))
+            (t2 (Tree "Ben" t1 null)))
+        ;; this is a bit messy, a smart constructor would do this
+        ;; automatically
+        (Tree_set_children t1 (list t2))
+        (Tree_get_value (car (Tree_get_children t1))))))
+ ;; check the return value is "Ben"
+ (cptr->string (test_tree_parent)) "Ben")
