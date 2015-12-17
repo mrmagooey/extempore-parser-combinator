@@ -6,31 +6,6 @@
 
 Contains c string (i8*), pointer to parent, pointer to list of children")
 
-(bind-func Tree_z:[Tree*,i8*,Tree*,i8*]*
-  "Overwrite the default constructor for Tree.
-If a parent is specified, this constructor adds this new instance to the parents childs list, in addition to setting the parent pointer on this instance.
-"
-  (lambda (string parent child_list)
-    (let ((t:Tree* (zalloc))
-          (l:List{Tree*}* (zalloc)))
-      ;; add our string
-      (tset! t 0 string)
-      ;; add the parent pointer
-      (tset! t 1 parent)
-      ;; add the pointer to the empty list to the tree
-      (tset! t 2 (cast l i8*))
-      ;; if there is a parent, append this new Tree to its list of Children
-      (if (not (null? parent))
-          (let ((parent_child_list (cast (tref parent 2) List{Tree*}*)))
-            ;; check if the parent is holding an empty list
-            (if (and (= 1 (length parent_child_list)) (null? (tref parent_child_list 0)))
-                (begin (set_car parent_child_list t)
-                       1)
-                (begin (append parent_child_list (list t))
-                       1))))
-      t)))
-
-
 
 (bind-func Tree_z:[Tree*,i8*,Tree*,i8*]*
   "Overwrite the default constructor for Tree.
