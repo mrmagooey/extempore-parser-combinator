@@ -1,0 +1,104 @@
+
+(sys:load "tree.xtm")
+(sys:load "libs/core/adt.xtm")
+
+(bind-type ParserMonadic <Tree*,String*> "The monadic value of the parser combinators?")
+
+(bind-type ParserList <ParserMonadic*,ParserList*> "Our l")
+
+;; (bind-alias ParserList List{ParserMonadic*})
+
+(bind-type CharMonadic <String*,String*> "")
+
+(bind-func result:[List*,String*]*
+  "
+Turns the input string into a monadic value, without changing the input string.
+
+@param input_string - The input string
+@returns ParserList - The monadic value 
+"
+  (lambda (input_string)
+    (list (ParserTuple (Tree input_string null null) input_string))))
+
+(bind-func zero:[List*,String*]*
+  "
+Always returns an empty list
+"
+  (lambda (input_string)
+    (list)))
+
+(bind-func item:[List{CharMonadic*}*,String*]*
+  (lambda (input_string)
+    (if (= (String_strlen input_string) 0)
+        (list)
+        (list (CharMonadic (String_substring input_string 0 1)
+                           (String_substring input_string 1 (- (String_strlen input_string) 1)))))))
+
+;; TODO this type signature is possibly bad
+(bind-func bind:[List{!a},[List{!a},String*]*,[List{List{!a}},List{!a}]*]*
+  "
+Returns a closure that takes an input string, applies Parser p to the input string, and a list of monadic values is returned.
+Then it applies the function f to each item in this returned list.
+
+@param p - first parser to be called on an input string
+@param f - function to be called on the results of parser p
+@return - closure which takes a single string argument (Parser B)
+"
+  (lambda (p f)
+    (lambda (inp)
+      (let ((pl1 (p inp))
+            (pl2 (map f pl1)))
+        (flatten pl2)))))
+
+(bind-func sat
+  "
+@param p - function that consumes a single character and return a boolean value
+@return - closure of type Parser Char
+"
+  (lambda (p)
+    (bind item (lambda (x)
+                 (let ((r (p x)))
+                   (if r
+                       (result r)
+                       (zero r)))))))
+
+(bind-func char
+  (lambda (c)
+    (sat (lambda (x) (= c x)))))
+
+(bind-func digit
+  (lambda ()
+    (sat (lambda (x) (isdigit x)))))
+
+(bind-func lower
+  (lambda ()
+    (sat (lambda (x) (islower x)))))
+
+(bind-func upper
+  (lambda ()
+    (sat (lambda (x) (isupper x)))))
+
+(bind-func plus
+  "
+@param p - parser p 
+@param q - parser q
+@return List 
+"
+  (lambda (p q)
+    (lambda (inp)
+      (append (p inp) (q inp)))))
+
+(bind-func letter
+  (lambda ()
+    (plus lower upper)))
+
+(bind-func alphanum
+  (lambda ()
+    (plus letter digit)))
+
+(bind-func word
+  (lambda (x)
+    (let ((neWord (bind letter 
+                        (lambda (x) (bind word 
+                                          (lambda (xs) (result (append x xs))))))))
+      (plus neWord (result "")))))
