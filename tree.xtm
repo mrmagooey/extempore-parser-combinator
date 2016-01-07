@@ -1,13 +1,12 @@
 (sys:load "libs/core/adt.xtm")
 ;; (bind-type Tree <i8*,Tree*,List{Tree*}*>)
 
-(bind-type Tree <i8*,Tree*,i8*>
+(bind-type Tree <String*,Tree*,i8*>
  "(non-generic) i8* Tree
 
 Contains c string (i8*), pointer to parent, pointer to list of children")
 
-
-(bind-func Tree_z:[Tree*,i8*,Tree*,i8*]*
+(bind-func Tree_z:[Tree*,String*,Tree*,i8*]*
   "Overwrite the default constructor for Tree.
 If a parent is specified, this constructor adds this new instance to the parents childs list, in addition to setting the parent pointer on this instance.
 "
@@ -29,19 +28,25 @@ If a parent is specified, this constructor adds this new instance to the parents
             ))
       t)))
 
+(bind-func Tree_sameptr_p:[i1,Tree*,Tree*]*
+ "do both these Tree* point to the same Tree in memory?"
+ (lambda (tree1 tree2)
+   (= (cast tree1 i8*)
+      (cast tree2 i8*))))
+
  ;; getters/setters
 
 (bind-func Tree_get_value
   "
 @param Tree - the tree to get the value from
-@returns pointer to a string
+@returns pointer to a String
 "
  (lambda (tree:Tree*)
     (tref tree 0)))
 
 (bind-func Tree_set_value
  (lambda (tree:Tree* val)
-   (tset! tree 0 val)))
+   (tset! tree 0 (String val))))
 
 (bind-func Tree_get_parent
  (lambda (tree:Tree*)
@@ -64,38 +69,29 @@ If a parent is specified, this constructor adds this new instance to the parents
 (bind-func Tree_add_child:[i1,Tree*,Tree*]*
   "Add a single child to the end of this trees list"
   (lambda (parent child)
-    (let ((parent_child_list (cast (tref parent 2) List{Tree*}*)))
-      (if (and (= 1 (length parent_child_list)) (null? (tref parent_child_list 0)))
-          (begin (set_car parent_child_list child)
-                 1)
-          (begin (append parent_child_list (list child))
-                 1)))
-    ))
+    (if (or (null? parent) (null? child))
+        0
+        (begin (let ((old_parent_child_list (cast (tref parent 2) List{Tree*}*))
+                     (new_parent_child_list (cons child old_parent_child_list)))
+                 
+                 (tset! parent 2 (cast new_parent_child_list i8*)))
+               1))))
 
-(bind-func Tree_root_p
+(bind-func Tree_is_root
  (lambda (tree:Tree*)
    (null? (tref tree 1))))
 
-(bind-func Tree_siblings:[List*,Tree*]*
+(bind-func Tree_get_siblings:[List{Tree*}*,Tree*]*
  "Get the all children of the parent excluding the passed tree parameter itself"
  (lambda (tree)
-   (let ((parent (Tree_parent tree)))
+   (let ((parent (Tree_get_parent tree)))
      (if (null? parent)
          null
          (->> parent
               (Tree_get_children)
                ;; filter out the original tree
-              (filter (lambda (x) (<> tree x))))))))
+              (filter (lambda (x) (not (Tree_sameptr_p tree x)))))))))
 
-;; for each child 
-;; check if the child is the item
-;; call the function on each child of the child
-
-(bind-func Tree_sameptr_p:[i1,Tree*,Tree*]*
- "do both these Tree* point to the same Tree in memory?"
- (lambda (tree1 tree2)
-   (= (cast tree1 i8*)
-      (cast tree2 i8*))))
 
 (bind-func Tree_descendant_p:[i1,Tree*,Tree*]*
  "Check if the first tree is the descendant of the second tree"
@@ -105,6 +101,5 @@ If a parent is specified, this constructor adds this new instance to the parents
                     0
                     (if (Tree_sameptr_p tr descendant)
                         1
-                        (any dfc (Tree_get_children tr))
-                        )))))
+                        (any dfc (Tree_get_children tr)))))))
      (dfc ancestor))))
