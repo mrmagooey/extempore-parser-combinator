@@ -1,70 +1,137 @@
 (sys:load "libs/core/test.xtm")
 (sys:load "tree.xtm")
+(sys:load "combinators.xtm")
+
+;; 
+
+(xtmtest
+ '(bind-func test_upper
+    (lambda ()
+      (bind )))
+ (test_upper) "H")
+
+(xtmtest
+ '(bind-func test_two_lower
+    (lambda ()
+      (let ((parser (bind lower (lambda (x) 
+                                  lower (lambda (y) 
+                                          (result x))))))
+        (parser "ab"))))
+ (test_two_lower))
+
+
+;; Tree
+
+(xtmtest
+ '(bind-func test_tree_constructor
+    (lambda ()
+      (let ((t1 (Tree (String "hi") null null))
+            (t2 (Tree (String "world") t1 null))
+            (t3 (Tree (String "foo") t2 null))
+            (t4 (Tree (String "a") null null))
+            (t5 (Tree (String "b") null null))
+            (list_o_trees (list t4 t5))
+            (t6 (Tree (String "c") null (cast list_o_trees i8*))))
+        1)))
+ (test_tree_constructor))
 
 (xtmtest
  '(bind-func test_tree_value_1
     (lambda ()
-      (let ((t1 (Tree "hi" null null)))
-        (Tree_get_value t1))))
+      (let ((t1 (Tree (String "hi") null null)))
+        (String_cstr (Tree_get_value t1)))))
  (cptr->string (test_tree_value_1)) "hi")
 
 (xtmtest
  '(bind-func test_tree_set_value_1
     (lambda ()
-      (let ((t1 (Tree "hi" null null)))
-        (Tree_set_value t1 "world"))))
+      (let ((t1 (Tree (String "hi") null null)))
+        (String_cstr (Tree_set_value t1 (String "world"))))))
  (cptr->string (test_tree_set_value_1)) "world")
 
 (xtmtest
  '(bind-func test_tree_get_parent
     (lambda ()
-      (let ((t1 (Tree "hi" null null))
-            (t2 (Tree "world" t1 null)))
-        (Tree_get_value (Tree_get_parent t2)))))
+      (let ((t1 (Tree (String "hi") null null))
+            (t2 (Tree (String "world") t1 null)))
+        (String_cstr (Tree_get_value (Tree_get_parent t2))))))
  (cptr->string (test_tree_get_parent)) "hi")
 
 (xtmtest
  '(bind-func test_tree_set_parent
     (lambda ()
-      (let ((t1 (Tree "hi" null null))
-            (t2 (Tree "world" null null)))
+      (let ((t1 (Tree (String "hi") null null))
+            (t2 (Tree (String "world") null null)))
         (Tree_set_parent t2 t1)
-        (Tree_get_value (Tree_get_parent t2)))))
+        (String_cstr (Tree_get_value (Tree_get_parent t2))))))
  (cptr->string (test_tree_set_parent)) "hi")
 
 (xtmtest
  '(bind-func test_tree_get_children
     (lambda ()
-      (let ((t1 (Tree "hi" null null))
-            (t2 (Tree "world" t1 null))
-            (t3 (Tree "foo" t1 null)))
-        (println (length (Tree_get_children t1)))
+      (let ((t1 (Tree (String "hi") null null))
+            (t2 (Tree (String "world") t1 null))
+            (t3 (Tree (String "foo") t1 null)))
         (length (Tree_get_children t1))))) 
  (test_tree_get_children) 2)
 
 (xtmtest
  '(bind-func test_tree_set_children
     (lambda ()
+      (let ((t1 (Tree (String "hi") null null))
+            (t2 (Tree (String "world") null null))
+            (t3 (Tree (String "foo") null null)))
+        (Tree_set_children t1 (list t2 t3))
+        (length (Tree_get_children t1)))
       ))
- (test_tree_set_children))
+ (test_tree_set_children) 2)
 
-
-
-(xtmtest 
- '(bind-func test_tree_root_p
+(xtmtest
+ '(bind-func test_tree_add_child
     (lambda ()
-      (let ((t1 (Tree "Pete" null null)))
-        (Tree_root_p t1))))
- (test_tree_root_p) 1)
+      (let ((t1 (Tree (String "hi") null null))
+            (t2 (Tree (String "world") t1 null))
+            (t3 (Tree (String "foo") null null)))
+        (Tree_add_child t1 t3)
+        (length (Tree_get_children t1)))      
+      ))
+ (test_tree_add_child) 2)
+
+(xtmtest
+ '(bind-func test_tree_is_root
+    (lambda ()
+      (let ((t1 (Tree (String "hi") null null))
+            (t2 (Tree (String "world") t1 null)))
+        (and  (Tree_is_root t1)
+              (not (Tree_is_root t2)))
+        )))
+ (test_tree_is_root) 1)
+
+(xtmtest
+ '(bind-func test_tree_get_siblings
+    (lambda ()
+      (let ((t1 (Tree (String "hi") null null))
+            (t2 (Tree (String "world") t1 null))
+            (t3 (Tree (String "foo") t1 null))
+            (t4 (Tree (String "foo") t1 null))
+            )
+        (length (Tree_get_siblings t2))
+        )))
+ (test_tree_get_siblings) 2)
+
+(xtmtest
+ '(bind-func test_tree_get_siblings_1
+    (lambda ()
+      (let ((t1 (Tree (String "hi") null null)))
+        (println (Tree_get_siblings t1))
+        (null? (Tree_get_siblings t1)))))
+ (test_tree_get_siblings_1) 1)
 
 (xtmtest 
  '(bind-func test_tree_parent
     (lambda ()
-      (let ((t1 (Tree "Pete" null null))
-            (t2 (Tree "Ben" t1 null)))
-        ;; this is a bit messy, a smart constructor would do this
-        ;; automatically
+      (let ((t1 (Tree (String "Pete") null null))
+            (t2 (Tree (String "Ben") t1 null)))
         (Tree_set_children t1 (list t2))
-        (Tree_get_value (car (Tree_get_children t1))))))
- ;; check the return value is "Ben"
+        (String_cstr (Tree_get_value (car (Tree_get_children t1)))))))
  (cptr->string (test_tree_parent)) "Ben")
