@@ -2,15 +2,13 @@
 (sys:load "tree.xtm")
 (sys:load "libs/core/adt.xtm")
 
-(bind-type ParserMonadic <Tree*,String*> "The monadic value of the parser combinators?")
-
-(bind-type ParserList <ParserMonadic*,ParserList*> "Our l")
+(bind-type TreeMonadicValue <Tree*,String*> "The monadic value of the parser combinators?")
 
 ;; (bind-alias ParserList List{ParserMonadic*})
-
+;;                          consumed, unconsumed
 (bind-type CharMonadic <String*,String*> "")
 
-(bind-func result:[List*,String*]*
+(bind-func result:[List{CharMonadic*}*,String*]*
   "
 Turns the input string into a monadic value, without changing the input string.
 
@@ -18,9 +16,9 @@ Turns the input string into a monadic value, without changing the input string.
 @returns ParserList - The monadic value 
 "
   (lambda (input_string)
-    (list (ParserTuple (Tree input_string null null) input_string))))
+    (list (CharMonadic (String "") input_string))))
 
-(bind-func zero:[List*,String*]*
+(bind-func zero:[List{CharMonadic*}*,String*]*
   "
 Always returns an empty list
 "
@@ -32,10 +30,9 @@ Always returns an empty list
     (if (= (String_strlen input_string) 0)
         (list)
         (list (CharMonadic (String_substring input_string 0 1)
-                           (String_substring input_string 1 (- (String_strlen input_string) 1)))))))
+                                (String_substring input_string 1 (- (String_strlen input_string) 1)))))))
 
-;; TODO this type signature is possibly bad
-(bind-func bind:[List{!a},[List{!a},String*]*,[List{List{!a}},List{!a}]*]*
+(bind-func bind:[List{CharMonadic*}*,[List{CharMonadic*}*,String*]*,[List{List{CharMonadic*}*}*,List{CharMonadic*}*]*]*
   "
 Returns a closure that takes an input string, applies Parser p to the input string, and a list of monadic values is returned.
 Then it applies the function f to each item in this returned list.
@@ -50,7 +47,7 @@ Then it applies the function f to each item in this returned list.
             (pl2 (map f pl1)))
         (flatten pl2)))))
 
-(bind-func sat
+(bind-func sat:[[List*,String*]*,[i1,String*]*]*
   "
 @param p - function that consumes a single character and return a boolean value
 @return - closure of type Parser Char
